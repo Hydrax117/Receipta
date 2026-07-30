@@ -1,6 +1,6 @@
 # Receipta
 
-[![CI](https://github.com/your-org/receipta-platform/workflows/CI/badge.svg)](https://github.com/your-org/receipta-platform/actions)
+[![CI](https://github.com/Receiptaa/Receipta/workflows/CI/badge.svg)](https://github.com/Receiptaa/Receipta/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Stellar](https://img.shields.io/badge/Stellar-Soroban-blue)](https://soroban.stellar.org)
 [![Live on Testnet](https://img.shields.io/badge/Testnet-Live-green)](https://stellar.expert/explorer/testnet/contract/CDLYITDQBWS7YWD5SGVXED4S4PCZEJJAOODOQ3OFSKJV5HX4ZLKKFWGC)
@@ -130,8 +130,8 @@ rustup target add wasm32-unknown-unknown
 ### 1. Clone and install
 
 ```bash
-git clone https://github.com/your-org/receipta-platform.git
-cd receipta-platform
+git clone https://github.com/Receiptaa/Receipta/receipta-platform.git
+cd receipta
 npm install          # installs backend + frontend workspaces
 ```
 

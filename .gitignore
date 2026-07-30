@@ -141,3 +141,6 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
+
+# Local GitHub issues draft (not for version control)
+GITHUB_ISSUES.md
