@@ -18,6 +18,8 @@ export default function RegisterPage() {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        // credentials: 'include' tells the browser to send/receive cookies cross-origin
+        credentials: 'include',
         body: JSON.stringify({ email, password, publicKey }),
       });
 
@@ -26,8 +28,7 @@ export default function RegisterPage() {
         throw new Error(data.error?.message || 'Registration failed');
       }
 
-      const data = await response.json();
-      localStorage.setItem('token', data.token);
+      // The server sets the HttpOnly cookie; no token in the response body to store
       window.location.href = '/dashboard';
     } catch (err: any) {
       setError(err.message || 'Registration failed');

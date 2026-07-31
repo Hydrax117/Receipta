@@ -17,6 +17,8 @@ export default function LoginPage() {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        // credentials: 'include' tells the browser to send/receive cookies cross-origin
+        credentials: 'include',
         body: JSON.stringify({ email, password }),
       });
 
@@ -24,8 +26,7 @@ export default function LoginPage() {
         throw new Error('Invalid credentials');
       }
 
-      const data = await response.json();
-      localStorage.setItem('token', data.token);
+      // The server sets the HttpOnly cookie; no token in the response body to store
       window.location.href = '/dashboard';
     } catch (err) {
       setError('Invalid email or password');

@@ -10,8 +10,8 @@ export interface AuthRequest extends Request {
 }
 
 export const authenticateToken = (req: AuthRequest, res: Response, next: NextFunction) => {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
+  // Read the JWT from the HttpOnly cookie set by /api/auth/login or /api/auth/register
+  const token: string | undefined = req.cookies?.auth_token;
 
   if (!token) {
     return res.status(401).json({

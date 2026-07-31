@@ -12,28 +12,25 @@ export default function DashboardPage() {
   }, []);
 
   const fetchDashboardData = async () => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      window.location.href = '/login';
-      return;
-    }
-
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-      
+
+      // credentials: 'include' lets the browser attach the HttpOnly auth cookie automatically
       const [statsRes, receiptsRes] = await Promise.all([
-        fetch(`${apiUrl}/api/merchant/stats`, {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
-        fetch(`${apiUrl}/api/merchant/receipts`, {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
+        fetch(`${apiUrl}/api/merchant/stats`, { credentials: 'include' }),
+        fetch(`${apiUrl}/api/merchant/receipts`, { credentials: 'include' }),
       ]);
+
+      // A 401 means the cookie is missing or expired — send the user to login
+      if (statsRes.status === 401 || receiptsRes.status === 401) {
+        window.location.href = '/login';
+        return;
+      }
 
       if (statsRes.ok && receiptsRes.ok) {
         const statsData = await statsRes.json();
         const receiptsData = await receiptsRes.json();
-        
+
         setStats(statsData.stats);
         setReceipts(receiptsData.receipts);
       }
