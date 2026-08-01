@@ -4,6 +4,16 @@ import bcrypt from 'bcrypt';
 
 const router = Router();
 
+// Cookie configuration shared by login and register
+const COOKIE_NAME = 'auth_token';
+const COOKIE_OPTIONS = {
+  httpOnly: true,                        // inaccessible to JavaScript
+  secure: process.env.NODE_ENV === 'production', // HTTPS-only in production
+  sameSite: 'strict' as const,           // no cross-site sending
+  maxAge: 7 * 24 * 60 * 60 * 1000,      // 7 days in ms
+  path: '/',
+};
+
 // In-memory store for demo - replace with database in production
 const merchants = new Map<string, { id: string; email: string; passwordHash: string; publicKey: string }>();
 
@@ -46,13 +56,15 @@ router.post('/register', async (req, res) => {
       { expiresIn: '7d' }
     );
 
+    // Set the JWT as an HttpOnly cookie — never exposed to JS
+    res.cookie(COOKIE_NAME, token, COOKIE_OPTIONS);
+
     res.status(201).json({
       merchant: {
         id: merchantId,
         email,
         publicKey,
       },
-      token,
     });
   } catch (error) {
     console.error('Registration error:', error);
@@ -107,13 +119,15 @@ router.post('/login', async (req, res) => {
       { expiresIn: '7d' }
     );
 
+    // Set the JWT as an HttpOnly cookie — never exposed to JS
+    res.cookie(COOKIE_NAME, token, COOKIE_OPTIONS);
+
     res.json({
       merchant: {
         id: merchant.id,
         email: merchant.email,
         publicKey: merchant.publicKey,
       },
-      token,
     });
   } catch (error) {
     console.error('Login error:', error);
@@ -124,6 +138,12 @@ router.post('/login', async (req, res) => {
       },
     });
   }
+});
+
+// POST /api/auth/logout - Clear the auth cookie server-side
+router.post('/logout', (_req, res) => {
+  res.clearCookie(COOKIE_NAME, { path: '/' });
+  res.json({ message: 'Logged out successfully' });
 });
 
 export default router;
