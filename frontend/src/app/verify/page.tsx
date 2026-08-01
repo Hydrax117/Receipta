@@ -3,8 +3,11 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 
-function VerifyContent() {
-  const searchParams = useSearchParams();
+const stroopsToXLM = (stroops: number): number => {
+  return stroops / 10000000;
+};
+
+export default function VerifyPage() {
   const [receiptId, setReceiptId] = useState('');
   const [receipt, setReceipt] = useState<any>(null);
   const [loading, setLoading] = useState(false);
@@ -85,8 +88,16 @@ function VerifyContent() {
 
       {receipt && (
         <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-xl font-bold mb-4 text-green-600">✓ Receipt Verified</h2>
-
+          <h2 className={`text-xl font-bold mb-4 ${
+            receipt.status === 'Confirmed' ? 'text-green-600' :
+            receipt.status === 'Pending' ? 'text-yellow-600' :
+            'text-red-600'
+          }`}>
+            {receipt.status === 'Confirmed' ? '✓ Receipt Confirmed' :
+             receipt.status === 'Pending' ? '⏳ Receipt Pending — payment not yet confirmed' :
+             '✗ Receipt Failed — this payment did not complete'}
+          </h2>
+          
           <div className="space-y-3">
             <div>
               <span className="font-medium">Status:</span>
@@ -105,7 +116,7 @@ function VerifyContent() {
 
             <div>
               <span className="font-medium">Amount:</span>
-              <span className="ml-2">{receipt.amount} stroops</span>
+              <span className="ml-2">{stroopsToXLM(receipt.amount).toFixed(7)} XLM ({receipt.amount.toLocaleString()} stroops)</span>
             </div>
 
             <div>
@@ -126,9 +137,20 @@ function VerifyContent() {
             {receipt.fee_amount > 0 && (
               <div>
                 <span className="font-medium">Platform Fee:</span>
-                <span className="ml-2">{receipt.fee_amount} stroops</span>
+                <span className="ml-2">{stroopsToXLM(receipt.fee_amount).toFixed(7)} XLM ({receipt.fee_amount.toLocaleString()} stroops)</span>
               </div>
             )}
+          </div>
+
+          <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+            <h3 className="font-medium mb-2">Status Explanation:</h3>
+            <p className="text-sm text-gray-600">
+              {receipt.status === 'Confirmed' 
+                ? 'This payment has been successfully confirmed on the Stellar network. The transaction is complete and irreversible.'
+                : receipt.status === 'Pending'
+                ? 'This payment is still being processed on the Stellar network. It has not yet been confirmed. Please check back later.'
+                : 'This payment failed to complete. The transaction was not successful and no funds were transferred.'}
+            </p>
           </div>
         </div>
       )}
