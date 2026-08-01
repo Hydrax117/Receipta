@@ -145,8 +145,8 @@ vite.config.ts.timestamp-*
 # Local GitHub issues draft (not for version control)
 GITHUB_ISSUES.md
 
-# Local PR description drafts (not for version control)
+# Pull request markdown files (local documentation)
 PR_*.md
 
-# Kiro IDE directory
+# Kiro directory
 .kiro/
