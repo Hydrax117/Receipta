@@ -1,5 +1,7 @@
 # Receipta Quick Start Guide
 
+> **Docs:** [Overview](docs/README.md) · [Architecture](docs/ARCHITECTURE.md) · [API Reference](docs/API.md) · [Features & Roadmap](docs/FEATURES.md) · [Deployment](DEPLOYMENT.md) · [Contributing](CONTRIBUTING.md)
+
 Get Receipta running locally in 5 minutes.
 
 ## Prerequisites
@@ -172,7 +174,7 @@ Current setup uses in-memory storage. For persistence:
 
 ## Resources
 
-- [Full Documentation](README.md)
+- [Documentation Overview](docs/README.md)
 - [API Reference](docs/API.md)
 - [Deployment Guide](DEPLOYMENT.md)
 - [Stellar Documentation](https://developers.stellar.org)

@@ -1,5 +1,7 @@
 # Contributing to Receipta
 
+> **Docs:** [Overview](docs/README.md) · [Architecture](docs/ARCHITECTURE.md) · [API Reference](docs/API.md) · [Features & Roadmap](docs/FEATURES.md) · [Quick Start](QUICKSTART.md) · [Deployment](DEPLOYMENT.md)
+
 Thank you for your interest in contributing to Receipta! This document provides guidelines and instructions for contributing.
 
 ## Development Setup

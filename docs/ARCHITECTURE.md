@@ -1,5 +1,7 @@
 # Receipta — Architecture
 
+> **Docs:** [Overview](README.md) · [API Reference](API.md) · [Features & Roadmap](FEATURES.md) · [Quick Start](../QUICKSTART.md) · [Deployment](../DEPLOYMENT.md) · [Contributing](../CONTRIBUTING.md)
+
 This document describes the system architecture, component responsibilities, data flow, and storage design.
 
 ---

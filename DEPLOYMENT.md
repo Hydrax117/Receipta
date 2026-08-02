@@ -1,5 +1,7 @@
 # Receipta Deployment Guide
 
+> **Docs:** [Overview](docs/README.md) · [Architecture](docs/ARCHITECTURE.md) · [API Reference](docs/API.md) · [Features & Roadmap](docs/FEATURES.md) · [Quick Start](QUICKSTART.md) · [Contributing](CONTRIBUTING.md)
+
 This guide walks you through deploying Receipta to Stellar testnet.
 
 ## Prerequisites
