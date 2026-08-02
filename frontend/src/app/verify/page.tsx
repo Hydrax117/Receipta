@@ -7,7 +7,8 @@ const stroopsToXLM = (stroops: number): number => {
   return stroops / 10000000;
 };
 
-export default function VerifyPage() {
+function VerifyContent() {
+  const searchParams = useSearchParams();
   const [receiptId, setReceiptId] = useState('');
   const [receipt, setReceipt] = useState<any>(null);
   const [loading, setLoading] = useState(false);
@@ -61,26 +62,42 @@ export default function VerifyPage() {
       <h1 className="text-3xl font-bold mb-6">Verify Receipt</h1>
 
       <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-        <label className="block text-sm font-medium mb-2">Receipt ID</label>
+        <label
+          htmlFor="verify-receipt-id"
+          className="block text-sm font-medium mb-2"
+        >
+          Receipt ID
+        </label>
         <input
+          id="verify-receipt-id"
           type="text"
           value={receiptId}
           onChange={(e) => setReceiptId(e.target.value)}
           placeholder="Enter 64-character receipt ID"
-          className="w-full px-4 py-2 border rounded-lg mb-4 font-mono text-sm"
+          className="w-full px-4 py-2 border rounded-lg mb-4 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           maxLength={64}
+          aria-describedby="receipt-id-hint"
         />
+        <p id="receipt-id-hint" className="sr-only">
+          Enter the full 64-character hexadecimal receipt ID to look up a transaction.
+        </p>
 
         <button
           onClick={() => handleVerify()}
           disabled={loading}
-          className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400"
+          aria-disabled={loading}
+          className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
         >
           {loading ? 'Verifying…' : 'Verify Receipt'}
         </button>
 
         {error && (
-          <div className="mt-4 p-4 bg-red-50 text-red-700 rounded-lg">
+          <div
+            id="verify-error"
+            role="alert"
+            aria-live="assertive"
+            className="mt-4 p-4 bg-red-50 text-red-700 rounded-lg"
+          >
             {error}
           </div>
         )}
@@ -88,64 +105,72 @@ export default function VerifyPage() {
 
       {receipt && (
         <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className={`text-xl font-bold mb-4 ${
-            receipt.status === 'Confirmed' ? 'text-green-600' :
-            receipt.status === 'Pending' ? 'text-yellow-600' :
-            'text-red-600'
-          }`}>
+          <h2
+            className={`text-xl font-bold mb-4 ${
+              receipt.status === 'Confirmed' ? 'text-green-600' :
+              receipt.status === 'Pending' ? 'text-yellow-600' :
+              'text-red-600'
+            }`}
+          >
             {receipt.status === 'Confirmed' ? '✓ Receipt Confirmed' :
              receipt.status === 'Pending' ? '⏳ Receipt Pending — payment not yet confirmed' :
              '✗ Receipt Failed — this payment did not complete'}
           </h2>
-          
-          <div className="space-y-3">
+
+          <dl className="space-y-3">
             <div>
-              <span className="font-medium">Status:</span>
-              <span
-                className={`ml-2 px-3 py-1 rounded-full text-sm ${
-                  receipt.status === 'Confirmed'
-                    ? 'bg-green-100 text-green-800'
-                    : receipt.status === 'Pending'
-                    ? 'bg-yellow-100 text-yellow-800'
-                    : 'bg-red-100 text-red-800'
-                }`}
-              >
-                {receipt.status}
-              </span>
+              <dt className="font-medium inline">Status:</dt>
+              <dd className="inline">
+                <span
+                  className={`ml-2 px-3 py-1 rounded-full text-sm ${
+                    receipt.status === 'Confirmed'
+                      ? 'bg-green-100 text-green-800'
+                      : receipt.status === 'Pending'
+                      ? 'bg-yellow-100 text-yellow-800'
+                      : 'bg-red-100 text-red-800'
+                  }`}
+                >
+                  {receipt.status}
+                </span>
+              </dd>
             </div>
 
             <div>
-              <span className="font-medium">Amount:</span>
-              <span className="ml-2">{stroopsToXLM(receipt.amount).toFixed(7)} XLM ({receipt.amount.toLocaleString()} stroops)</span>
+              <dt className="font-medium inline">Amount:</dt>
+              <dd className="inline ml-2">
+                {stroopsToXLM(receipt.amount).toFixed(7)} XLM ({receipt.amount.toLocaleString()} stroops)
+              </dd>
             </div>
 
             <div>
-              <span className="font-medium">Sender:</span>
-              <span className="ml-2 text-sm font-mono break-all">{receipt.sender}</span>
+              <dt className="font-medium inline">Sender:</dt>
+              <dd className="inline ml-2 text-sm font-mono break-all">{receipt.sender}</dd>
             </div>
 
             <div>
-              <span className="font-medium">Receiver:</span>
-              <span className="ml-2 text-sm font-mono break-all">{receipt.receiver}</span>
+              <dt className="font-medium inline">Receiver:</dt>
+              <dd className="inline ml-2 text-sm font-mono break-all">{receipt.receiver}</dd>
             </div>
 
             <div>
-              <span className="font-medium">Timestamp:</span>
-              <span className="ml-2">{new Date(receipt.timestamp * 1000).toLocaleString()}</span>
+              <dt className="font-medium inline">Timestamp:</dt>
+              <dd className="inline ml-2">{new Date(receipt.timestamp * 1000).toLocaleString()}</dd>
             </div>
 
             {receipt.fee_amount > 0 && (
               <div>
-                <span className="font-medium">Platform Fee:</span>
-                <span className="ml-2">{stroopsToXLM(receipt.fee_amount).toFixed(7)} XLM ({receipt.fee_amount.toLocaleString()} stroops)</span>
+                <dt className="font-medium inline">Platform Fee:</dt>
+                <dd className="inline ml-2">
+                  {stroopsToXLM(receipt.fee_amount).toFixed(7)} XLM ({receipt.fee_amount.toLocaleString()} stroops)
+                </dd>
               </div>
             )}
-          </div>
+          </dl>
 
           <div className="mt-6 p-4 bg-gray-50 rounded-lg">
             <h3 className="font-medium mb-2">Status Explanation:</h3>
             <p className="text-sm text-gray-600">
-              {receipt.status === 'Confirmed' 
+              {receipt.status === 'Confirmed'
                 ? 'This payment has been successfully confirmed on the Stellar network. The transaction is complete and irreversible.'
                 : receipt.status === 'Pending'
                 ? 'This payment is still being processed on the Stellar network. It has not yet been confirmed. Please check back later.'

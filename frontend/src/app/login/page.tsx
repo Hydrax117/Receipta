@@ -55,36 +55,61 @@ function LoginForm() {
 
         {/* Session-expired notice (amber, distinct from a form error) */}
         {notice && (
-          <div className="mb-4 p-3 bg-amber-50 border border-amber-200 text-amber-800 rounded-lg text-sm">
+          <div
+            role="status"
+            aria-live="polite"
+            className="mb-4 p-3 bg-amber-50 border border-amber-200 text-amber-800 rounded-lg text-sm"
+          >
             {notice}
           </div>
         )}
 
-        <form onSubmit={handleLogin}>
+        <form onSubmit={handleLogin} noValidate>
           <div className="mb-4">
-            <label className="block text-sm font-medium mb-2">Email</label>
+            <label
+              htmlFor="login-email"
+              className="block text-sm font-medium mb-2"
+            >
+              Email
+            </label>
             <input
+              id="login-email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-2 border rounded-lg"
+              className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              autoComplete="email"
               required
+              aria-required="true"
             />
           </div>
 
           <div className="mb-6">
-            <label className="block text-sm font-medium mb-2">Password</label>
+            <label
+              htmlFor="login-password"
+              className="block text-sm font-medium mb-2"
+            >
+              Password
+            </label>
             <input
+              id="login-password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-2 border rounded-lg"
+              className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              autoComplete="current-password"
               required
+              aria-required="true"
             />
           </div>
 
           {error && (
-            <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-lg text-sm">
+            <div
+              id="login-error"
+              role="alert"
+              aria-live="assertive"
+              className="mb-4 p-3 bg-red-50 text-red-700 rounded-lg text-sm"
+            >
               {error}
             </div>
           )}
@@ -92,7 +117,8 @@ function LoginForm() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400"
+            aria-disabled={loading}
+            className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
           >
             {loading ? 'Logging in…' : 'Login'}
           </button>
@@ -100,7 +126,10 @@ function LoginForm() {
 
         <p className="mt-4 text-center text-sm text-gray-600">
           Don&apos;t have an account?{' '}
-          <a href="/register" className="text-blue-600 hover:underline">
+          <a
+            href="/register"
+            className="text-blue-600 hover:underline focus:outline-none focus:ring-2 focus:ring-blue-500 rounded"
+          >
             Register
           </a>
         </p>
