@@ -7,6 +7,16 @@ use soroban_sdk::{contract, contractimpl, Address, Bytes, BytesN, Env};
 
 /// Generates a deterministic 32-byte receipt ID by hashing
 /// (sender, receiver, amount, timestamp) with SHA-256.
+///
+/// Preimage layout (length-prefixed fields separated by 0x00):
+///   [sender_len_u32_be] [sender_bytes] [0x00]
+///   [receiver_len_u32_be] [receiver_bytes] [0x00]
+///   [amount_i128_be_16_bytes] [0x00]
+///   [timestamp_u64_be_8_bytes]
+///
+/// Using the actual address bytes (not their string length) and all
+/// 16 bytes of the i128 amount prevents the collision described in the
+/// bug report where every G-address string has the same length (56).
 pub fn generate_receipt_id(
     env: &Env,
     sender: &Address,
@@ -14,30 +24,61 @@ pub fn generate_receipt_id(
     amount: i128,
     timestamp: u64,
 ) -> BytesN<32> {
-    // Create a tuple of all parameters and hash it
-    env.crypto().sha256(&Bytes::from_array(
-        env,
-        &[
-            sender.to_string().len() as u8,
-            receiver.to_string().len() as u8,
-            (amount >> 56) as u8,
-            (amount >> 48) as u8,
-            (amount >> 40) as u8,
-            (amount >> 32) as u8,
-            (amount >> 24) as u8,
-            (amount >> 16) as u8,
-            (amount >> 8) as u8,
-            amount as u8,
-            (timestamp >> 56) as u8,
-            (timestamp >> 48) as u8,
-            (timestamp >> 40) as u8,
-            (timestamp >> 32) as u8,
-            (timestamp >> 24) as u8,
-            (timestamp >> 16) as u8,
-            (timestamp >> 8) as u8,
-            timestamp as u8,
-        ],
-    )).into()
+    let mut preimage = Bytes::new(env);
+
+    // Helper: append a u32 as 4 big-endian bytes.
+    let append_u32 = |buf: &mut Bytes, v: u32| {
+        buf.push_back((v >> 24) as u8);
+        buf.push_back((v >> 16) as u8);
+        buf.push_back((v >> 8) as u8);
+        buf.push_back(v as u8);
+    };
+
+    // --- sender address bytes (length-prefixed) ---
+    let sender_str = sender.to_string();
+    let sender_bytes = sender_str.as_bytes();
+    append_u32(&mut preimage, sender_bytes.len() as u32);
+    preimage.append(&sender_bytes);
+    preimage.push_back(0x00); // field separator
+
+    // --- receiver address bytes (length-prefixed) ---
+    let receiver_str = receiver.to_string();
+    let receiver_bytes = receiver_str.as_bytes();
+    append_u32(&mut preimage, receiver_bytes.len() as u32);
+    preimage.append(&receiver_bytes);
+    preimage.push_back(0x00); // field separator
+
+    // --- amount: full 16 bytes (i128 big-endian) ---
+    let amount_u128 = amount as u128;
+    preimage.push_back((amount_u128 >> 120) as u8);
+    preimage.push_back((amount_u128 >> 112) as u8);
+    preimage.push_back((amount_u128 >> 104) as u8);
+    preimage.push_back((amount_u128 >> 96) as u8);
+    preimage.push_back((amount_u128 >> 88) as u8);
+    preimage.push_back((amount_u128 >> 80) as u8);
+    preimage.push_back((amount_u128 >> 72) as u8);
+    preimage.push_back((amount_u128 >> 64) as u8);
+    preimage.push_back((amount_u128 >> 56) as u8);
+    preimage.push_back((amount_u128 >> 48) as u8);
+    preimage.push_back((amount_u128 >> 40) as u8);
+    preimage.push_back((amount_u128 >> 32) as u8);
+    preimage.push_back((amount_u128 >> 24) as u8);
+    preimage.push_back((amount_u128 >> 16) as u8);
+    preimage.push_back((amount_u128 >> 8) as u8);
+    preimage.push_back(amount_u128 as u8);
+    preimage.push_back(0x00); // field separator
+
+    // --- timestamp: 8 bytes (u64 big-endian) ---
+    preimage.push_back((timestamp >> 56) as u8);
+    preimage.push_back((timestamp >> 48) as u8);
+    preimage.push_back((timestamp >> 40) as u8);
+    preimage.push_back((timestamp >> 32) as u8);
+    preimage.push_back((timestamp >> 24) as u8);
+    preimage.push_back((timestamp >> 16) as u8);
+    preimage.push_back((timestamp >> 8) as u8);
+    preimage.push_back(timestamp as u8);
+
+    env.crypto().sha256(&preimage).into()
 }
 
 #[contract]
@@ -331,6 +372,58 @@ mod tests {
         let id2 = generate_receipt_id(&env, &addr_b, &addr_a, amount, timestamp);
 
         assert_ne!(id1, id2, "swapping sender and receiver must produce different IDs");
+    }
+
+    #[test]
+    fn test_receipt_id_same_length_addresses_differ() {
+        // Regression test for the bug where only string length (always 56 for G-addresses)
+        // was hashed instead of the actual address bytes. Two distinct addresses with the
+        // same string length must produce different receipt IDs.
+        let env = Env::default();
+        let sender1 = Address::generate(&env);
+        let sender2 = Address::generate(&env);
+        let receiver1 = Address::generate(&env);
+        let receiver2 = Address::generate(&env);
+        let amount: i128 = 1_000_000;
+        let timestamp: u64 = 1_700_000_000;
+
+        // All G-addresses are 56 chars — the old bug made these collide.
+        let s1_str = sender1.to_string();
+        let s2_str = sender2.to_string();
+        assert_eq!(
+            s1_str.len(),
+            s2_str.len(),
+            "test precondition: both addresses must have the same string length"
+        );
+
+        let id1 = generate_receipt_id(&env, &sender1, &receiver1, amount, timestamp);
+        let id2 = generate_receipt_id(&env, &sender2, &receiver2, amount, timestamp);
+        assert_ne!(
+            id1, id2,
+            "different addresses with the same string length must produce different receipt IDs"
+        );
+    }
+
+    #[test]
+    fn test_receipt_id_large_amount_high_bits() {
+        // Regression test: the old preimage only covered the low 8 bytes of amount.
+        // Two amounts that differ only in the high 8 bytes must produce different IDs.
+        let env = Env::default();
+        let sender = Address::generate(&env);
+        let receiver = Address::generate(&env);
+        let timestamp: u64 = 1_700_000_000;
+
+        // amount_a and amount_b share the same low 64 bits but differ in the high 64 bits.
+        let low_bits: i128 = 0x00FF_FFFF_FFFF_FFFF;
+        let amount_a: i128 = low_bits;                          // high 64 bits = 0
+        let amount_b: i128 = (1i128 << 64) | low_bits;         // high 64 bits = 1
+
+        let id1 = generate_receipt_id(&env, &sender, &receiver, amount_a, timestamp);
+        let id2 = generate_receipt_id(&env, &sender, &receiver, amount_b, timestamp);
+        assert_ne!(
+            id1, id2,
+            "amounts differing only in the high 64 bits must produce different receipt IDs"
+        );
     }
 
     #[test]
