@@ -1,5 +1,7 @@
 # Receipta — Features Overview
 
+> **Docs:** [Overview](README.md) · [Architecture](ARCHITECTURE.md) · [API Reference](API.md) · [Quick Start](../QUICKSTART.md) · [Deployment](../DEPLOYMENT.md) · [Contributing](../CONTRIBUTING.md)
+
 This document describes every implemented feature across the smart contract, backend API, and frontend, along with the current status of planned features.
 
 ---

@@ -26,9 +26,11 @@ The contract is fully functional on Stellar testnet. You can:
 
 ## Quick Links
 
+- 📖 [Documentation Overview](docs/README.md) - All docs in one place
 - 📚 [Quick Start Guide](QUICKSTART.md) - Get running in 5 minutes
 - 🚀 [Deployment Guide](DEPLOYMENT.md) - Deploy to testnet/mainnet
-- 📖 [API Documentation](docs/API.md) - Complete API reference
+- 🔌 [API Documentation](docs/API.md) - Complete API reference
+- 🏗️ [Architecture](docs/ARCHITECTURE.md) - System design and data flow
 - ✨ [Features](docs/FEATURES.md) - Feature overview and roadmap
 - 🤝 [Contributing](CONTRIBUTING.md) - How to contribute
 
