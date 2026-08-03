@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
+import { getConfig } from '../config';
 
 const router = Router();
 
@@ -52,7 +53,7 @@ router.post('/register', async (req, res) => {
 
     const token = jwt.sign(
       { merchantId, email, publicKey },
-      process.env.JWT_SECRET || 'dev-secret-change-in-production',
+      getConfig().jwtSecret,
       { expiresIn: '7d' }
     );
 
@@ -115,7 +116,7 @@ router.post('/login', async (req, res) => {
 
     const token = jwt.sign(
       { merchantId: merchant.id, email: merchant.email, publicKey: merchant.publicKey },
-      process.env.JWT_SECRET || 'dev-secret-change-in-production',
+      getConfig().jwtSecret,
       { expiresIn: '7d' }
     );
 

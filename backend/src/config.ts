@@ -1,0 +1,97 @@
+/**
+ * config.ts — centralised environment variable validation.
+ *
+ * Call validateEnv() once at startup (before the server begins listening).
+ * If any required variable is missing or invalid the process exits immediately
+ * with a clear error message so the misconfiguration is caught before any
+ * traffic is served.
+ */
+
+interface AppConfig {
+  jwtSecret: string;
+  nodeEnv: string;
+  port: number;
+  frontendUrl: string;
+  stellarRpcUrl: string;
+  contractId: string;
+}
+
+// ── Validation ───────────────────────────────────────────────────────────────
+
+export function validateEnv(): AppConfig {
+  const errors: string[] = [];
+
+  // ── Required secrets ───────────────────────────────────────────────────────
+
+  const jwtSecret = process.env.JWT_SECRET ?? '';
+  if (!jwtSecret) {
+    errors.push('JWT_SECRET is not set');
+  } else if (jwtSecret.length < 32) {
+    errors.push(
+      `JWT_SECRET is too short (${jwtSecret.length} chars). Minimum length is 32 characters.`
+    );
+  }
+
+  // ── Stellar / contract (warn in dev, error in production) ─────────────────
+
+  const contractId   = process.env.CONTRACT_ID   ?? '';
+  const stellarRpcUrl = process.env.STELLAR_RPC_URL ?? 'https://soroban-testnet.stellar.org';
+  const nodeEnv = process.env.NODE_ENV ?? 'development';
+
+  if (nodeEnv === 'production') {
+    if (!contractId) {
+      errors.push('CONTRACT_ID is not set (required in production)');
+    }
+  } else {
+    if (!contractId) {
+      console.warn(
+        '[config] WARNING: CONTRACT_ID is not set — Soroban calls will use simulated receipt creation'
+      );
+    }
+  }
+
+  // ── Bail out if anything is wrong ─────────────────────────────────────────
+
+  if (errors.length > 0) {
+    console.error('\n[config] Server startup aborted — environment misconfiguration:\n');
+    errors.forEach((e) => console.error(`  ✖  ${e}`));
+    console.error(
+      '\nSee backend/.env.example for the full list of required variables.\n'
+    );
+    process.exit(1);
+  }
+
+  // ── Optional with defaults ────────────────────────────────────────────────
+
+  const port = parseInt(process.env.PORT ?? '3001', 10);
+  const frontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:3000';
+
+  return {
+    jwtSecret,
+    nodeEnv,
+    port,
+    frontendUrl,
+    stellarRpcUrl,
+    contractId,
+  };
+}
+
+// ── Singleton ─────────────────────────────────────────────────────────────────
+// Exported so routes/middleware can import the already-validated config object
+// without re-running validation on every request.
+
+let _config: AppConfig | null = null;
+
+export function getConfig(): AppConfig {
+  if (!_config) {
+    throw new Error(
+      'getConfig() called before validateEnv(). Call validateEnv() in app.ts first.'
+    );
+  }
+  return _config;
+}
+
+export function initConfig(): AppConfig {
+  _config = validateEnv();
+  return _config;
+}
