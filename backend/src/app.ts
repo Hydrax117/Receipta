@@ -2,6 +2,11 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
+import { initConfig } from './config';
+
+// Validate all required environment variables before the server starts.
+// Exits with a non-zero code and a clear error if anything is missing.
+const config = initConfig();
 
 const app = express();
 
@@ -10,7 +15,7 @@ app.use(helmet());
 app.use(
   cors({
     // Allow the frontend origin to send cookies
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    origin: config.frontendUrl,
     credentials: true,
   })
 );
@@ -46,7 +51,7 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
   });
 });
 
-const PORT = process.env.PORT ?? 3001;
+const PORT = config.port;
 
 if (require.main === module) {
   app.listen(PORT, () => {

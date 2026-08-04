@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import { getConfig } from '../config';
 
 export interface AuthRequest extends Request {
   merchant?: {
@@ -23,8 +24,10 @@ export const authenticateToken = (req: AuthRequest, res: Response, next: NextFun
   }
 
   try {
-    const secret = process.env.JWT_SECRET || 'dev-secret-change-in-production';
-    const decoded = jwt.verify(token, secret) as {
+    // getConfig() returns the validated config — JWT_SECRET is guaranteed
+    // non-empty and ≥32 chars; no fallback to a hardcoded string.
+    const { jwtSecret } = getConfig();
+    const decoded = jwt.verify(token, jwtSecret) as {
       merchantId: string;
       email: string;
       publicKey: string;
