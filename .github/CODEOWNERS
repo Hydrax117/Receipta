@@ -1,0 +1,63 @@
+# =============================================================================
+# CODEOWNERS
+#
+# Each line is a file pattern followed by one or more owners.
+# The last matching rule takes precedence.
+# Owners are notified and their review is required when a PR touches
+# files matching the pattern.
+#
+# Syntax: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+# =============================================================================
+
+# ---------------------------------------------------------------------------
+# Global fallback — catches anything not matched below
+# ---------------------------------------------------------------------------
+*                                   @kodegreen70
+
+# ---------------------------------------------------------------------------
+# CI/CD and GitHub configuration
+# ---------------------------------------------------------------------------
+.github/                            @kodegreen70
+
+
+# ---------------------------------------------------------------------------
+# Soroban smart contract (Rust)
+# ---------------------------------------------------------------------------
+contract/                           @kodegreen70
+
+# ---------------------------------------------------------------------------
+# Backend — Express API (TypeScript)
+# ---------------------------------------------------------------------------
+backend/                            @kodegreen70
+backend/src/middleware/auth.ts      @kodegreen70
+backend/src/routes/auth.ts          @kodegreen70
+
+# ---------------------------------------------------------------------------
+# Frontend — Next.js (TypeScript / React)
+# ---------------------------------------------------------------------------
+frontend/                           @kodegreen70
+
+# ---------------------------------------------------------------------------
+# Documentation
+# ---------------------------------------------------------------------------
+docs/                              @kodegreen70
+*.md                                @kodegreen70
+
+# ---------------------------------------------------------------------------
+# Root config and infra
+# ---------------------------------------------------------------------------
+package.json                        @kodegreen70
+package-lock.json                  @kodegreen70
+Makefile                            @kodegreen70
+Makefile.ps1                       @kodegreen70
+deploy.ps1                          @kodegreen70
+deploy-wsl.sh                       @kodegreen70
+scripts/                           @kodegreen70
+
+# ---------------------------------------------------------------------------
+# Security-sensitive files — always require security team sign-off
+# ---------------------------------------------------------------------------
+.env.example                        @kodegreen70
+backend/.env.example                @kodegreen70
+backend/src/middleware/             @kodegreen70
+backend/src/stellar/               @kodegreen70

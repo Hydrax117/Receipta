@@ -1,0 +1,145 @@
+name: CI
+
+on:
+  push:
+    branches: ["main", "develop"]
+  pull_request:
+    branches: ["main", "develop"]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Lint
+  # ---------------------------------------------------------------------------
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint frontend
+        run: npm run lint:frontend
+
+  # ---------------------------------------------------------------------------
+  # Backend tests
+  # ---------------------------------------------------------------------------
+  test-backend:
+    name: Backend Tests
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: receipta
+          POSTGRES_PASSWORD: receipta_test
+          POSTGRES_DB: receipta_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      NODE_ENV: test
+      JWT_SECRET: ci-test-secret-that-is-at-least-32-characters-long
+      DATABASE_URL: postgresql://receipta:receipta_test@localhost:5432/receipta_test
+      STELLAR_RPC_URL: https://soroban-testnet.stellar.org
+      CONTRACT_ID: ""
+      PORT: 3001
+      FRONTEND_URL: http://localhost:3000
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build backend
+        run: npm run build:backend
+
+      - name: Run backend tests
+        run: npm run test:backend -- --forceExit
+
+  # ---------------------------------------------------------------------------
+  # Frontend tests
+  # ---------------------------------------------------------------------------
+  test-frontend:
+    name: Frontend Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run frontend tests
+        run: npm run test:frontend
+
+      - name: Build frontend
+        run: npm run build:frontend
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:3001
+
+  # ---------------------------------------------------------------------------
+  # Soroban contract — build & test
+  # ---------------------------------------------------------------------------
+  test-contract:
+    name: Contract Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Cache Cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            contract/target
+          key: cargo-${{ hashFiles('contract/Cargo.lock') }}
+          restore-keys: cargo-
+
+      - name: Run contract tests
+        run: cargo test --manifest-path contract/Cargo.toml
+
+      - name: Build contract (release)
+        run: cargo build --manifest-path contract/Cargo.toml --target wasm32-unknown-unknown --release
+
+      - name: Upload contract WASM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: receipta-contract-wasm
+          path: contract/target/wasm32-unknown-unknown/release/receipta_contract.wasm
+          retention-days: 7
