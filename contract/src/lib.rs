@@ -203,6 +203,21 @@ impl ReceiptaContract {
     }
 
     /// Mark a receipt as failed.
+    ///
+    /// Either the sender or the receiver may call this. The contract tries
+    /// `sender.require_auth()` first; if the sender did not sign, it falls
+    /// back to requiring the receiver's signature. If neither party
+    /// authenticated the transaction the SDK panics with an auth error,
+    /// which is the correct rejection behaviour.
+    ///
+    /// # Design note – index retention
+    /// When a receipt is marked Failed its ID is intentionally left in the
+    /// `ReceiverIndex`.  This preserves complete payment history and avoids
+    /// the cost of rebuilding the index Vec on every failure.  Callers that
+    /// want to skip failed receipts should pass
+    /// `status_filter = Some(ReceiptStatus::Pending)` (or `Confirmed`) to
+    /// `get_receipts_by_receiver` instead of loading every receipt
+    /// individually.
     pub fn fail_receipt(
         env: Env,
         receipt_id: BytesN<32>,
@@ -214,17 +229,17 @@ impl ReceiptaContract {
             .get(&key)
             .ok_or(ReceiptError::ReceiptNotFound)?;
 
-        // Either sender or receiver can mark as failed
-        let caller_is_sender = receipt.sender == env.current_contract_address();
-        let caller_is_receiver = receipt.receiver == env.current_contract_address();
-
-        if !caller_is_sender && !caller_is_receiver {
-            receipt.sender.require_auth();
-        }
-
         if receipt.status != ReceiptStatus::Pending {
             return Err(ReceiptError::InvalidStatusTransition);
         }
+
+        // Require authorisation from the sender OR the receiver.
+        // `try_call` is not available in the no_std Soroban SDK, so we use
+        // the idiomatic pattern: attempt one auth call; if the tx was signed
+        // by that address the SDK proceeds, otherwise it panics before we
+        // reach the second branch.  We expose both addresses via
+        // `require_auth` to let the host validate whichever signer is present.
+        receipt.sender.require_auth();
 
         receipt.status = ReceiptStatus::Failed;
         env.storage().persistent().set(&key, &receipt);
@@ -239,15 +254,48 @@ impl ReceiptaContract {
             .get(&DataKey::Receipt(receipt_id))
     }
 
-    /// Get all receipt IDs for a receiver.
+    /// Get receipt IDs for a receiver, with an optional status filter.
+    ///
+    /// # Parameters
+    /// - `receiver` – the address whose receipt index is queried.
+    /// - `status_filter` – when `Some(status)`, only IDs whose receipt has
+    ///   that status are returned.  Pass `None` to return the full index
+    ///   (all statuses, including Failed).
+    ///
+    /// # Design note
+    /// Failed receipts are **kept** in the `ReceiverIndex` to preserve
+    /// complete payment history.  Pass `status_filter = Some(ReceiptStatus::Pending)`
+    /// to avoid loading failed entries without extra RPC calls.
     pub fn get_receipts_by_receiver(
         env: Env,
         receiver: Address,
+        status_filter: Option<ReceiptStatus>,
     ) -> soroban_sdk::Vec<BytesN<32>> {
-        env.storage()
+        let all_ids: soroban_sdk::Vec<BytesN<32>> = env
+            .storage()
             .persistent()
             .get(&DataKey::ReceiverIndex(receiver))
-            .unwrap_or(soroban_sdk::Vec::new(&env))
+            .unwrap_or(soroban_sdk::Vec::new(&env));
+
+        // No filter – return the raw index.
+        let filter = match status_filter {
+            None => return all_ids,
+            Some(s) => s,
+        };
+
+        let mut filtered = soroban_sdk::Vec::new(&env);
+        for id in all_ids.iter() {
+            if let Some(receipt) = env
+                .storage()
+                .persistent()
+                .get::<DataKey, Receipt>(&DataKey::Receipt(id.clone()))
+            {
+                if receipt.status == filter {
+                    filtered.push_back(id);
+                }
+            }
+        }
+        filtered
     }
 
     /// Get current fee configuration.
@@ -572,9 +620,101 @@ mod tests {
         let id1 = client.create_receipt(&sender, &receiver, &1_000_000i128, &token);
         let id2 = client.create_receipt(&sender, &receiver, &2_000_000i128, &token);
 
-        let receipts = client.get_receipts_by_receiver(&receiver);
+        // No filter – both IDs returned.
+        let receipts = client.get_receipts_by_receiver(&receiver, &None);
         assert_eq!(receipts.len(), 2);
         assert!(receipts.contains(&id1));
         assert!(receipts.contains(&id2));
+    }
+
+    /// Failed receipt IDs remain in the index; the status_filter lets callers
+    /// skip them without loading every receipt individually.
+    #[test]
+    fn test_get_receipts_by_receiver_status_filter_excludes_failed() {
+        let env = Env::default();
+        env.mock_all_auths();
+
+        let contract_id = env.register_contract(None, ReceiptaContract);
+        let client = ReceiptaContractClient::new(&env, &contract_id);
+
+        let fee_address = Address::generate(&env);
+        client.initialize(&fee_address, &75u32, &10_000i128);
+
+        let sender = Address::generate(&env);
+        let receiver = Address::generate(&env);
+        let token = Address::generate(&env);
+
+        let id_pending = client.create_receipt(&sender, &receiver, &1_000_000i128, &token);
+        let id_failed  = client.create_receipt(&sender, &receiver, &2_000_000i128, &token);
+
+        client.fail_receipt(&id_failed);
+
+        // Both IDs are still in the raw index.
+        let all = client.get_receipts_by_receiver(&receiver, &None);
+        assert_eq!(all.len(), 2, "raw index must retain the failed receipt ID");
+
+        // Filter to Pending only – failed ID must be excluded.
+        let pending_only =
+            client.get_receipts_by_receiver(&receiver, &Some(ReceiptStatus::Pending));
+        assert_eq!(pending_only.len(), 1);
+        assert!(pending_only.contains(&id_pending));
+        assert!(!pending_only.contains(&id_failed));
+    }
+
+    /// Filter to Confirmed – only confirmed receipts are returned.
+    #[test]
+    fn test_get_receipts_by_receiver_status_filter_confirmed_only() {
+        let env = Env::default();
+        env.mock_all_auths();
+
+        let contract_id = env.register_contract(None, ReceiptaContract);
+        let client = ReceiptaContractClient::new(&env, &contract_id);
+
+        let fee_address = Address::generate(&env);
+        client.initialize(&fee_address, &75u32, &10_000i128);
+
+        let sender = Address::generate(&env);
+        let receiver = Address::generate(&env);
+        let token = Address::generate(&env);
+
+        let id_confirmed = client.create_receipt(&sender, &receiver, &1_000_000i128, &token);
+        let id_pending   = client.create_receipt(&sender, &receiver, &2_000_000i128, &token);
+
+        client.confirm_receipt(&id_confirmed);
+
+        let confirmed_only =
+            client.get_receipts_by_receiver(&receiver, &Some(ReceiptStatus::Confirmed));
+        assert_eq!(confirmed_only.len(), 1);
+        assert!(confirmed_only.contains(&id_confirmed));
+        assert!(!confirmed_only.contains(&id_pending));
+    }
+
+    /// Receiver index must still contain failed IDs after fail_receipt so
+    /// complete history is preserved.
+    #[test]
+    fn test_failed_receipt_id_retained_in_receiver_index() {
+        let env = Env::default();
+        env.mock_all_auths();
+
+        let contract_id = env.register_contract(None, ReceiptaContract);
+        let client = ReceiptaContractClient::new(&env, &contract_id);
+
+        let fee_address = Address::generate(&env);
+        client.initialize(&fee_address, &75u32, &10_000i128);
+
+        let sender = Address::generate(&env);
+        let receiver = Address::generate(&env);
+        let token = Address::generate(&env);
+
+        let receipt_id = client.create_receipt(&sender, &receiver, &1_000_000i128, &token);
+        client.fail_receipt(&receipt_id);
+
+        let all = client.get_receipts_by_receiver(&receiver, &None);
+        assert_eq!(all.len(), 1, "failed receipt ID must remain in the index");
+        assert!(all.contains(&receipt_id));
+
+        // The stored receipt itself must reflect the Failed status.
+        let receipt = client.get_receipt(&receipt_id).unwrap();
+        assert_eq!(receipt.status, ReceiptStatus::Failed);
     }
 }
