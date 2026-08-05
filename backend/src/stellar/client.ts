@@ -9,6 +9,7 @@ import {
   Address,
 } from '@stellar/stellar-sdk';
 import * as crypto from 'crypto';
+import { getConfig } from '../config';
 
 export interface Receipt {
   receipt_id: string;
@@ -225,3 +226,23 @@ export class StellarClient {
     };
   }
 }
+
+// ---------------------------------------------------------------------------
+// Singleton — created once at module load time (i.e. application startup).
+//
+// Rationale: SorobanRpc.Server and Contract hold configuration state that is
+// identical for every request. Re-instantiating them per-request wastes
+// allocations and makes future work (connection pooling, nonce management,
+// response caching) harder to add. A single shared instance is sufficient
+// because neither object holds mutable per-request state.
+//
+// Environment validation is delegated to getConfig(), which reads the already-
+// validated AppConfig produced by initConfig() in app.ts. If CONTRACT_ID or
+// STELLAR_RPC_URL were missing the process would have exited before this
+// module was ever imported, so no additional checks are needed here.
+// ---------------------------------------------------------------------------
+
+export const stellarClient: StellarClient = (() => {
+  const { stellarRpcUrl, contractId } = getConfig();
+  return new StellarClient(stellarRpcUrl, contractId, 'testnet');
+})();

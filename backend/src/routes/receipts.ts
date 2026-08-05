@@ -1,15 +1,9 @@
 import { Router } from 'express';
-import { StellarClient } from '../stellar/client';
+import { stellarClient } from '../stellar/client';
 import { authenticateToken, AuthRequest } from '../middleware/auth';
 import { merchantReceipts, MerchantReceipt } from './merchant';
 
 const router = Router();
-
-const stellarClient = new StellarClient(
-  process.env.STELLAR_RPC_URL || 'https://soroban-testnet.stellar.org',
-  process.env.CONTRACT_ID || '',
-  'testnet'
-);
 
 // ---------------------------------------------------------------------------
 // POST /api/receipts  — authenticated
