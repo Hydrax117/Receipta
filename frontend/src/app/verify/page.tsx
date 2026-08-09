@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { apiUrl } from '@/lib/api';
 
 const stroopsToXLM = (stroops: number): number => {
   return stroops / 10000000;
@@ -41,7 +42,7 @@ function VerifyContent() {
 
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/receipts/${id}`
+        `${apiUrl}/api/receipts/${id}`
       );
 
       if (!response.ok) {

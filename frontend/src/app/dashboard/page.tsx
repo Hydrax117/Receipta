@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { apiUrl } from '@/lib/api';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -89,8 +90,6 @@ export default function DashboardPage() {
     receipts: null,
   });
 
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-
   const fetchDashboardData = useCallback(async () => {
     setLoading(true);
     setGlobalError(null);
@@ -140,7 +139,7 @@ export default function DashboardPage() {
     } finally {
       setLoading(false);
     }
-  }, [apiUrl]);
+  }, []);
 
   useEffect(() => {
     fetchDashboardData();
