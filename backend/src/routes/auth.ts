@@ -2,6 +2,7 @@ import { Router } from 'express';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import { getConfig } from '../config';
+import logger from '../logger';
 
 const router = Router();
 
@@ -68,7 +69,7 @@ router.post('/register', async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Registration error:', error);
+    (req.log ?? logger).error({ err: error }, 'Registration error');
     res.status(500).json({
       error: {
         code: 'REGISTRATION_FAILED',
@@ -131,7 +132,7 @@ router.post('/login', async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Login error:', error);
+    (req.log ?? logger).error({ err: error }, 'Login error');
     res.status(500).json({
       error: {
         code: 'LOGIN_FAILED',

@@ -10,6 +10,9 @@ import {
 } from '@stellar/stellar-sdk';
 import * as crypto from 'crypto';
 import { getConfig } from '../config';
+import logger from '../logger';
+
+const stellarLogger = logger.child({ module: 'stellar-client' });
 
 export interface Receipt {
   receipt_id: string;
@@ -54,7 +57,7 @@ export class StellarClient {
 
       return this.parseReceipt(result.val);
     } catch (error) {
-      console.error('Error fetching receipt from Stellar:', error);
+      stellarLogger.error({ err: error }, 'Error fetching receipt from Stellar');
       return null;
     }
   }
@@ -87,7 +90,7 @@ export class StellarClient {
 
     // If no contract is configured, return a simulated Pending record.
     if (!this.contractId) {
-      console.warn('StellarClient: CONTRACT_ID not set — using simulated receipt creation');
+      stellarLogger.warn('CONTRACT_ID not set — using simulated receipt creation');
       return { receiptId, status: 'Pending' };
     }
 
@@ -121,7 +124,7 @@ export class StellarClient {
       const simResult = await this.server.simulateTransaction(tx);
 
       if (SorobanRpc.Api.isSimulationError(simResult)) {
-        console.error('Soroban simulation error:', simResult.error);
+        stellarLogger.error({ error: simResult.error }, 'Soroban simulation error');
         // Return a pending record — the caller can retry or mark as failed later
         return { receiptId, status: 'Pending' };
       }
@@ -132,7 +135,7 @@ export class StellarClient {
       // the pending state immediately.
       return { receiptId, status: 'Pending' };
     } catch (error) {
-      console.error('Error calling Soroban create_receipt:', error);
+      stellarLogger.error({ err: error }, 'Error calling Soroban create_receipt');
       // Degrade gracefully — still return the deterministic ID
       return { receiptId, status: 'Pending' };
     }
