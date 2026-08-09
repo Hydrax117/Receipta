@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { apiUrl } from '@/lib/api';
 
 function LoginForm() {
   const searchParams = useSearchParams();
@@ -25,7 +26,7 @@ function LoginForm() {
 
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/auth/login`,
+        `${apiUrl}/api/auth/login`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { apiUrl } from '@/lib/api';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -103,8 +104,6 @@ export default function PayPage({ params }: { params: { id: string } }) {
   const [errorMessage, setErrorMessage] = useState('');
   const [freighterAvailable, setFreighterAvailable] = useState(false);
 
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-
   // Fetch payment link details
   useEffect(() => {
     const fetchLink = async () => {
@@ -170,7 +169,7 @@ export default function PayPage({ params }: { params: { id: string } }) {
       setErrorMessage(err.message || 'Payment failed. Please try again.');
       setPageState('error');
     }
-  }, [link, apiUrl]);
+  }, [link]);
 
   // -------------------------------------------------------------------------
   // Render states
