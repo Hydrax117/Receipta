@@ -19,6 +19,7 @@ interface AppConfig {
   frontendUrl: string;
   stellarRpcUrl: string;
   contractId: string;
+  bodySizeLimit: string;
 }
 
 // ── Validation ───────────────────────────────────────────────────────────────
@@ -70,6 +71,11 @@ export function validateEnv(): AppConfig {
   const port = parseInt(process.env.PORT ?? '3001', 10);
   const frontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:3000';
 
+  // Maximum allowed JSON / urlencoded body size.
+  // Keep this small — legitimate API payloads are well under 16 KB.
+  // Override via BODY_SIZE_LIMIT, e.g. "32kb" or "1mb".
+  const bodySizeLimit = process.env.BODY_SIZE_LIMIT ?? '16kb';
+
   return {
     jwtSecret,
     nodeEnv,
@@ -77,6 +83,7 @@ export function validateEnv(): AppConfig {
     frontendUrl,
     stellarRpcUrl,
     contractId,
+    bodySizeLimit,
   };
 }
 
