@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import { getConfig } from '../config';
 import logger from '../logger';
+import { validatePassword, PASSWORD_POLICY_ERROR } from '../middleware/validatePassword';
 
 const router = Router();
 
@@ -29,6 +30,25 @@ router.post('/register', async (req, res) => {
         error: {
           code: 'MISSING_FIELDS',
           message: 'Email, password, and Stellar public key are required',
+        },
+      });
+    }
+
+    // Validate password policy before doing any work.
+    // validatePassword accepts `unknown` so it also guards against malformed
+    // bodies where `password` arrives as a non-string (object, array, etc.).
+    const pwResult = validatePassword(password);
+    if (!pwResult.valid) {
+      // Log the internal reason at debug level for ops visibility — never
+      // expose it in the response.
+      (req.log ?? logger).debug(
+        { reason: pwResult.reason },
+        'Registration rejected: password policy violation'
+      );
+      return res.status(400).json({
+        error: {
+          code: 'WEAK_PASSWORD',
+          message: PASSWORD_POLICY_ERROR,
         },
       });
     }
