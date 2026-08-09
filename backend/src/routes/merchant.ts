@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { authenticateToken, AuthRequest } from '../middleware/auth';
+import logger from '../logger';
 
 const router = Router();
 
@@ -52,7 +53,7 @@ router.get('/receipts', authenticateToken, async (req: AuthRequest, res) => {
       },
     });
   } catch (error) {
-    console.error('Error fetching merchant receipts:', error);
+    (req.log ?? logger).error({ err: error }, 'Error fetching merchant receipts');
     res.status(500).json({
       error: { code: 'INTERNAL_ERROR', message: 'Failed to fetch receipts' },
     });
@@ -82,7 +83,7 @@ router.get('/stats', authenticateToken, async (req: AuthRequest, res) => {
 
     res.json({ stats });
   } catch (error) {
-    console.error('Error fetching merchant stats:', error);
+    (req.log ?? logger).error({ err: error }, 'Error fetching merchant stats');
     res.status(500).json({
       error: { code: 'INTERNAL_ERROR', message: 'Failed to fetch statistics' },
     });

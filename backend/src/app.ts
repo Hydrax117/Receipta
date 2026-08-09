@@ -3,6 +3,8 @@ import cors from 'cors';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import { initConfig } from './config';
+import logger from './logger';
+import { requestLogger } from './middleware/requestLogger';
 
 // Validate all required environment variables before the server starts.
 // Exits with a non-zero code and a clear error if anything is missing.
@@ -21,6 +23,7 @@ app.use(
 );
 app.use(express.json());
 app.use(cookieParser());
+app.use(requestLogger);
 
 // Health check
 app.get('/health', (_req, res) => {
@@ -40,8 +43,8 @@ app.use('/api/payment-links', paymentLinksRouter);
 app.use('/api/merchant', merchantRouter);
 
 // Global error handler
-app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-  console.error(err.stack);
+app.use((err: Error, req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  (req.log ?? logger).error({ err }, 'Unhandled error');
   res.status(500).json({
     error: {
       code: 'INTERNAL_SERVER_ERROR',
@@ -55,7 +58,7 @@ const PORT = config.port;
 
 if (require.main === module) {
   app.listen(PORT, () => {
-    console.log(`Receipta backend listening on port ${PORT}`);
+    logger.info({ port: PORT }, `Receipta backend listening`);
   });
 }
 

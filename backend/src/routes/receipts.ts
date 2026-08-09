@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { stellarClient } from '../stellar/client';
 import { authenticateToken, AuthRequest } from '../middleware/auth';
 import { merchantReceipts, MerchantReceipt } from './merchant';
+import logger from '../logger';
 
 const router = Router();
 
@@ -86,7 +87,7 @@ router.post('/', authenticateToken, async (req: AuthRequest, res) => {
 
     res.status(201).json({ receipt: record });
   } catch (error) {
-    console.error('Error creating receipt:', error);
+    (req.log ?? logger).error({ err: error }, 'Error creating receipt');
     res.status(500).json({
       error: { code: 'RECEIPT_CREATION_FAILED', message: 'Failed to create receipt' },
     });
@@ -120,7 +121,7 @@ router.get('/:id', async (req, res) => {
 
     res.json({ receipt });
   } catch (error) {
-    console.error('Error fetching receipt:', error);
+    (req.log ?? logger).error({ err: error }, 'Error fetching receipt');
     res.status(500).json({
       error: { code: 'INTERNAL_ERROR', message: 'Failed to fetch receipt' },
     });

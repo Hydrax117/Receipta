@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { authenticateToken, AuthRequest } from '../middleware/auth';
+import logger from '../logger';
 
 const router = Router();
 
@@ -53,7 +54,7 @@ router.post('/', authenticateToken, async (req: AuthRequest, res) => {
       },
     });
   } catch (error) {
-    console.error('Error creating payment link:', error);
+    (req.log ?? logger).error({ err: error }, 'Error creating payment link');
     res.status(500).json({
       error: {
         code: 'LINK_CREATION_FAILED',
@@ -89,7 +90,7 @@ router.get('/:id', async (req, res) => {
 
     res.json({ paymentLink: link });
   } catch (error) {
-    console.error('Error fetching payment link:', error);
+    (req.log ?? logger).error({ err: error }, 'Error fetching payment link');
     res.status(500).json({
       error: {
         code: 'INTERNAL_ERROR',

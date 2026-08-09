@@ -7,6 +7,11 @@
  * traffic is served.
  */
 
+// NOTE: We import a minimal pino instance here rather than the application
+// logger to avoid a circular dependency (logger → config → logger).
+import pino from 'pino';
+const configLogger = pino({ name: 'config' });
+
 interface AppConfig {
   jwtSecret: string;
   nodeEnv: string;
@@ -44,8 +49,8 @@ export function validateEnv(): AppConfig {
     }
   } else {
     if (!contractId) {
-      console.warn(
-        '[config] WARNING: CONTRACT_ID is not set — Soroban calls will use simulated receipt creation'
+      configLogger.warn(
+        'CONTRACT_ID is not set — Soroban calls will use simulated receipt creation'
       );
     }
   }
@@ -53,10 +58,9 @@ export function validateEnv(): AppConfig {
   // ── Bail out if anything is wrong ─────────────────────────────────────────
 
   if (errors.length > 0) {
-    console.error('\n[config] Server startup aborted — environment misconfiguration:\n');
-    errors.forEach((e) => console.error(`  ✖  ${e}`));
-    console.error(
-      '\nSee backend/.env.example for the full list of required variables.\n'
+    configLogger.error(
+      { errors },
+      'Server startup aborted — environment misconfiguration. See backend/.env.example for the full list of required variables.'
     );
     process.exit(1);
   }
