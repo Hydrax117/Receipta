@@ -148,6 +148,7 @@ GITHUB_ISSUES.md
 
 # Pull request markdown files (local documentation)
 PR_*.md
+pr-*.md
 
 # Kiro directory
 .kiro/
