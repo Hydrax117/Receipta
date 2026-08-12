@@ -5,6 +5,28 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { apiUrl } from '@/lib/api';
 
 // ---------------------------------------------------------------------------
+// Auth-error helper
+// ---------------------------------------------------------------------------
+
+/**
+ * Call after receiving a 401 response.
+ * Reads the JSON body to distinguish TOKEN_EXPIRED (redirect with notice)
+ * from other auth failures (plain login redirect).
+ */
+async function handleAuthError(res: Response): Promise<void> {
+  try {
+    const body = await res.json();
+    if (body?.code === 'TOKEN_EXPIRED') {
+      window.location.href = '/login?reason=session_expired';
+      return;
+    }
+  } catch {
+    // non-JSON body — fall through to plain redirect
+  }
+  window.location.href = '/login';
+}
+
+// ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
@@ -207,7 +229,7 @@ function DashboardContent() {
       });
 
       if (res.status === 401) {
-        window.location.href = '/login?reason=session_expired';
+        await handleAuthError(res);
         return;
       }
 
@@ -243,7 +265,7 @@ function DashboardContent() {
       );
 
       if (res.status === 401) {
-        window.location.href = '/login?reason=session_expired';
+        await handleAuthError(res);
         return;
       }
 

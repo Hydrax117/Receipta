@@ -36,11 +36,17 @@ export const authenticateToken = (req: AuthRequest, res: Response, next: NextFun
     req.merchant = decoded;
     next();
   } catch (error) {
-    return res.status(403).json({
-      error: {
-        code: 'INVALID_TOKEN',
-        message: 'Invalid or expired token',
-      },
+    if (error instanceof jwt.TokenExpiredError) {
+      return res.status(401).json({
+        error: 'Token expired',
+        code: 'TOKEN_EXPIRED',
+      });
+    }
+
+    // Covers JsonWebTokenError (bad signature, malformed) and NotBeforeError
+    return res.status(401).json({
+      error: 'Invalid token',
+      code: 'TOKEN_INVALID',
     });
   }
 };
